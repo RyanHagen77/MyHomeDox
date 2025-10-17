@@ -1,6 +1,7 @@
 "use client";
 
 import { glass, glassTight, ctaGhost, ctaPrimary, heading } from "@/lib/glass";
+import Image from "next/image";
 
 export default function AccountPage() {
   return (
