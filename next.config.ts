@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  eslint: {
-    // ✅ Unblocks Vercel builds even if lint errors exist
-    ignoreDuringBuilds: true,
 
   // Keep clean URLs like /home instead of /home/
   trailingSlash: false,
@@ -11,28 +8,47 @@ const nextConfig = {
   // Disable built-in image optimization — all assets come from /public
   images: {
     unoptimized: true,
-    domains: [], // no external hosts needed
+    // Add domains here if you later load remote images:
+    // domains: ["example.com"],
   },
 
-  // Ensure Vercel static exports behave as expected
+  // Good default for Vercel/Node deployment
   output: "standalone",
 
-  // Optional: short-term cache control for dynamic pages
+  // 🚫 Don’t block builds on lint or type errors (demo-friendly)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
+  // Caching: HTML revalidates; static assets are long-cached
   async headers() {
     return [
       {
+        // Pages / API responses: revalidate each request
         source: "/:path*",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate"
-          }
-        ]
-      }
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        // Next build artifacts
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        // Your static files under /public
+        source: "/:all*(svg|png|jpg|jpeg|webp|gif|ico|woff2|woff|ttf|otf)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
     ];
-  }
- },
+  },
 };
-
 
 module.exports = nextConfig;

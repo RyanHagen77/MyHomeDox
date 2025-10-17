@@ -19,8 +19,8 @@ type RecordItem = {
   verified: boolean; attachments: string[]; category: string;
 };
 type Property = {
-  id: string; address: string; photo: string; yearBuilt: number; sqft: number;
-  beds: number; baths: number; estValue: number; healthScore: number; lastUpdated: string;
+  id: string; address: string; photo: string; yearBuilt?: number; sqft?: number;
+  beds?: number; baths?: number; estValue: number; healthScore: number; lastUpdated?: string;
 };
 type Reminder = { id: string; title: string; due: string };
 type Warranty = { id: string; item: string; vendor: string; expires: string };
@@ -28,13 +28,32 @@ type Vendor = { id: string; name: string; type: string; verified: boolean; ratin
 
 type HomeData = {
   property: Property;
-  records: RecordItem[];
+  records?: RecordItem[];
   reminders: Reminder[];
   warranties: Warranty[];
   vendors: Vendor[];
 };
 
 type PurchasedHome = { id: string; address: string; photo?: string; readonly?: boolean };
+
+// helpers (paste near top of file)
+const s = (v: unknown, f = ""): string =>
+  typeof v === "string" && v.length ? v : f;
+
+const n = (v: unknown, f = 0): number => {
+  const x = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(x) ? x : f;
+};
+
+const b = (v: unknown, f = false): boolean =>
+  typeof v === "boolean" ? v : f;
+
+const todayISO = () => new Date().toISOString();
+const yearNow = new Date().getFullYear();
+
+const toDateSafe = (v: unknown): Date =>
+  v instanceof Date ? v : v ? new Date(v as any) : new Date();
+
 
 export default function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
@@ -83,37 +102,39 @@ export default function HomePage() {
 
       const d: HomeData = {
         property: {
-          id: property.id,
-          address: addr,
+          id: s(property?.id, "prop_1"),
+          address: s(addr, "Unknown address"),
           photo: "/myhomedox_homeowner1.jpg",
-          yearBuilt: property.yearBuilt,
-          sqft: property.sqft,
-          beds: property.beds,
-          baths: property.baths,
-          estValue: property.estValue,
-          healthScore: property.healthScore,
-          lastUpdated: property.lastUpdated,
+          yearBuilt: n(property?.yearBuilt, yearNow),
+          sqft: n(property?.sqft, 0),
+          beds: n(property?.beds, 0),
+          baths: n(property?.baths, 0),
+          estValue: n(property?.estValue, 0),
+          healthScore: n(property?.healthScore, 0),
+          lastUpdated: s(property?.lastUpdated, todayISO()),
         },
-        records: records.map((r) => ({
-          id: r.id,
-          date: r.date,
-          title: r.category,
-          vendor: r.vendor,
-          cost: r.cost,
-          verified: r.verified,
-          attachments: [],
-          category: r.category,
+
+        records: (records ?? []).map((r, i) => ({
+          id: s((r as any)?.id, `rec_${i}`),
+          date: s((r as any)?.date, todayISO()),
+          title: s((r as any)?.category, "General"),
+          vendor: s((r as any)?.vendor, "Unknown vendor"),
+          cost: n((r as any)?.cost, 0),
+          verified: b((r as any)?.verified, false),
+          attachments: [], // keep empty for demo
+          category: s((r as any)?.category, "General"),
         })),
+
         reminders: [
           {
             id: "rem1",
             title: "Change HVAC Filter",
-            due: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(), // 30 days out
+            due: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
           },
           {
             id: "rem2",
             title: "Clean Gutters",
-            due: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(), // 3 months out
+            due: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
           },
         ],
 
@@ -122,24 +143,25 @@ export default function HomePage() {
             id: "war1",
             item: "Water Heater",
             vendor: "AquaFix Plumbing",
-            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(), // 1 year
+            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
           },
           {
             id: "war2",
             item: "Roof Shingles",
             vendor: "Lone Star Roofing",
-            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 5).toISOString(), // 5 years
+            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 5).toISOString(),
           },
         ],
 
-        vendors: vendors.map((v) => ({
-          id: v.id,
-          name: v.name,
-          type: v.type,
-          verified: v.verified,
-          rating: v.rating,
+        vendors: (vendors ?? []).map((v, i) => ({
+          id: s((v as any)?.id, `ven_${i}`),
+          name: s((v as any)?.name, "Unknown vendor"),
+          type: s((v as any)?.type, "general"),
+          verified: b((v as any)?.verified, false),
+          rating: n((v as any)?.rating, 0),
         })),
       };
+
 
       // Rehydrate locally-saved lists
       const persistedRecords = loadJSON<RecordItem[] | null>("records", null);
@@ -251,7 +273,7 @@ useEffect(() => { if (hydrated && data) saveJSON("vendors", data.vendors); }, [h
                   <a href="/report" className={ctaGhost}>View Report</a>
                 </div>
                 <p className={`text-sm ${textMeta}`}>
-                  Last updated {new Date(property.lastUpdated).toLocaleDateString()}
+                  Last updated {toDateSafe(property?.lastUpdated).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -261,10 +283,10 @@ useEffect(() => { if (hydrated && data) saveJSON("vendors", data.vendors); }, [h
           <section aria-labelledby="stats" className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <Stat label="Health Score" value={`${property.healthScore}/100`}
                   hint="A 0–100 score based on recent maintenance."/>
-            <Stat label="Est. Value" value={`$${property.estValue.toLocaleString()}`}/>
-            <Stat label="Beds / Baths" value={`${property.beds} / ${property.baths}`}/>
-            <Stat label="Sq Ft" value={property.sqft.toLocaleString()}/>
-            <Stat label="Year Built" value={property.yearBuilt}/>
+            <Stat label="Est. Value" value={`$${(property.estValue ?? 0).toLocaleString()}`} />
+            <Stat label="Beds / Baths" value={`${property.beds ?? 0} / ${property.baths ?? 0}`} />
+            <Stat label="Sq Ft" value={(property.sqft ?? 0).toLocaleString()} />
+            <Stat label="Year Built" value={property.yearBuilt ?? "—"} />
           </section>
 
           {/* Body */}
