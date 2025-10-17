@@ -7,8 +7,17 @@ export default function AccountPage() {
     <main className="relative min-h-screen text-white">
       {/* Fixed background (same as landing) */}
       <div className="fixed inset-0 -z-50">
-        <img src="/myhomedox_home3.webp" alt="" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-black/45" />
+        <div className="relative h-64 md:h-[400px] lg:h-[520px]">
+          <Image
+              src="/myhomedox_home3.webp"
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover object-center"
+              priority
+          />
+        </div>
+        <div className="absolute inset-0 bg-black/45"/>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.45))]" />
       </div>
 

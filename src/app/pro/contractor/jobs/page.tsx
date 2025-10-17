@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { glass, glassTight, heading, textMeta, ctaPrimary, ctaGhost } from "@/lib/glass";
 import { Button, GhostButton } from "@/components/ui/Button";
 import { Input, Textarea, fieldLabel } from "@/components/ui";
@@ -160,7 +161,14 @@ export default function JobsPage() {
 function Bg() {
   return (
     <div className="fixed inset-0 -z-50">
-      <img src="/myhomedox_home3.webp" alt="" className="h-full w-full object-cover" />
+      <Image
+        src="/myhomedox_home3.webp"
+        alt=""
+        fill
+        sizes="100vw"
+        className="object-cover object-center"
+        priority
+      />
       <div className="absolute inset-0 bg-black/45" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.45))]" />
     </div>

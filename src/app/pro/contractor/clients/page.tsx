@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { glass, glassTight, heading, textMeta, ctaPrimary, ctaGhost } from "@/lib/glass";
 import { Button, GhostButton } from "@/components/ui/Button";
 import { Input, fieldLabel } from "@/components/ui";
@@ -110,21 +111,16 @@ export default function ClientsPage() {
 function Bg() {
   return (
     <div className="fixed inset-0 -z-50">
-      {/* Use the wider shot; shift focal point upward on large screens */}
-      <img
+      <Image
         src="/myhomedox_home3.webp"
         alt=""
-        className="
-          h-full w-full
-          object-cover
-          object-center
-          md:object-[50%_35%]   /* move focus up a bit on md+ */
-          lg:object-[50%_30%]   /* a touch more on large */
-          xl:object-[50%_28%]
-        "
+        fill
+        sizes="100vw"
+        className="object-cover md:object-[50%_35%] lg:object-[50%_30%]"
+        priority
       />
       <div className="absolute inset-0 bg-black/45" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.45))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.6))]" />
     </div>
   );
 }

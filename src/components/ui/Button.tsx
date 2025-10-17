@@ -14,7 +14,7 @@ type ButtonBase = {
 };
 
 type AnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
-  ButtonBase & { asChild?: true; href: string };
+  ButtonBase & { asChild: true; href: string };
 
 type NativeButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   ButtonBase & { asChild?: false | undefined };
@@ -31,20 +31,35 @@ const variantMap: Record<Variant, string> = {
   ghost: ctaGhost,
 };
 
+function isAnchorProps(p: Props): p is AnchorProps {
+  return (p as AnchorProps).asChild === true;
+}
+
 export function Button(props: Props) {
   const {
     variant = "primary",
     size = "md",
     className = "",
     children,
-    ...rest
-  } = props as any;
+  } = props;
 
   const classes = `${base} ${sizeMap[size]} ${variantMap[variant]} ${className}`;
 
   // Link-style button (anchor)
-  if ("asChild" in props && props.asChild) {
-    const { href, target, rel, ...aRest } = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
+  if (isAnchorProps(props)) {
+    const {
+      href,
+      target,
+      rel,
+      // strip base-only props so they don't land on <a>
+      asChild: _asChild,
+      variant: _variant,
+      size: _size,
+      className: _cn,
+      children: _children,
+      ...aRest
+    } = props;
+
     return (
       <a href={href} target={target} rel={rel} className={classes} {...aRest}>
         {children}
@@ -53,7 +68,16 @@ export function Button(props: Props) {
   }
 
   // Native button; default type="button" to avoid accidental submits
-  const { type, ...btnRest } = rest as React.ButtonHTMLAttributes<HTMLButtonElement>;
+  const {
+    type,
+    asChild: _asChild,
+    variant: _variant,
+    size: _size,
+    className: _cn,
+    children: _children,
+    ...btnRest
+  } = props;
+
   return (
     <button type={type ?? "button"} className={classes} {...btnRest}>
       {children}
@@ -61,8 +85,10 @@ export function Button(props: Props) {
   );
 }
 
-// Convenience wrapper matching your old export; this uses the glass Ghost style and supports size/className.
-export function GhostButton(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { size?: Size; className?: string }) {
+// Convenience wrapper matching your old export; uses the glass Ghost style and supports size/className.
+export function GhostButton(
+  props: React.ButtonHTMLAttributes<HTMLButtonElement> & { size?: Size; className?: string }
+) {
   const { className = "", size = "md", type, ...rest } = props;
   const classes = `${base} ${sizeMap[size]} ${ctaGhost} ${className}`;
   return <button type={type ?? "button"} className={classes} {...rest} />;

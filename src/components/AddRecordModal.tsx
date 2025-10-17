@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import Image from "next/image";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Select, Textarea, fieldLabel } from "@/components/ui";
 import { Button, GhostButton } from "@/components/ui/Button";
@@ -69,7 +70,14 @@ export function AddRecordModal({ open, onClose, onCreate }: Props) {
           {attachments.length > 0 && (
             <div className="flex gap-2 overflow-x-auto">
               {attachments.map((u,i)=>(
-                <img key={i} src={u} alt="" className="w-20 h-20 object-cover rounded border border-white/20" />
+              <Image
+                key={i}
+                src={u}
+                alt=""
+                width={80}
+                height={80}
+                className="w-20 h-20 object-cover rounded border border-white/20"
+              />
               ))}
             </div>
           )}
