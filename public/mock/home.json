@@ -1,0 +1,31 @@
+{
+  "property": {
+    "id": "oakview-2147",
+    "address": "2147 Oakview Drive, Austin, TX",
+    "photo": "/img/homes/oakview.jpg",
+    "yearBuilt": 1998,
+    "sqft": 2450,
+    "beds": 4,
+    "baths": 3,
+    "estValue": 642000,
+    "healthScore": 87,
+    "lastUpdated": "2025-09-21"
+  },
+  "records": [
+    {"id":"r1","date":"2024-05-10","title":"HVAC Tune-up","vendor":"ChillRight Heating","cost":250,"verified":true,"attachments":["/files/hvac_2024.pdf"],"category":"Maintenance"},
+    {"id":"r2","date":"2023-07-14","title":"Roof Repair","vendor":"Lone Star Roofing","cost":4200,"verified":true,"attachments":[],"category":"Repair"},
+    {"id":"r3","date":"2022-09-01","title":"Kitchen Remodel","vendor":"BuildPro Renovations","cost":19800,"verified":true,"attachments":["/files/kitchen_receipt.pdf"],"category":"Upgrade"}
+  ],
+  "reminders": [
+    {"id":"m1","title":"HVAC filter replacement","due":"2025-11-01"},
+    {"id":"m2","title":"Gutter cleaning","due":"2025-10-30"}
+  ],
+  "warranties": [
+    {"id":"w1","item":"Water Heater","vendor":"AO Smith","expires":"2026-03-15"},
+    {"id":"w2","item":"Roof Workmanship","vendor":"Lone Star Roofing","expires":"2028-07-14"}
+  ],
+  "vendors": [
+    {"id":"v1","name":"Lone Star Roofing","type":"Roofing","verified":true,"rating":5},
+    {"id":"v2","name":"AquaFix Plumbing","type":"Plumbing","verified":false,"rating":3}
+  ]
+}
