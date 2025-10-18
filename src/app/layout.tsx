@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "Homefax — The home record your buyers trust",
+  title: "MyHomeDox — The home record your buyers trust",
   description:
     "Store, verify, and share your property's service history — like Carfax for homes.",
 };

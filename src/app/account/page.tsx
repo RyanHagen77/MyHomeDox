@@ -73,7 +73,7 @@ export default function AccountPage() {
         <section className={glass}>
           <h2 className={`mb-2 text-lg font-medium ${heading}`}>Subscription</h2>
           <div className={glassTight}>
-            <p className="text-white/85">Homefax Basic</p>
+            <p className="text-white/85">MyHomeDox Basic</p>
             <p className="text-white/70 text-sm">Manage your plan and payment details.</p>
           </div>
           <div className="mt-3">
