@@ -211,7 +211,7 @@ export default function HomeLanding() {
                              bg-[rgba(243,90,31,0.85)] hover:bg-[rgba(243,90,31,0.95)]
                              shadow-[0_8px_24px_rgba(243,90,31,.25)] transition"
                 >
-                  {loading ? "Looking…" : "Visit home"}
+                  {loading ? "Looking…" : "Lookup"}
                 </Button>
               </form>
             </div>
