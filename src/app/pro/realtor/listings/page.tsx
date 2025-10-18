@@ -9,18 +9,16 @@ import Link from "next/link";
 function Bg() {
   return (
     <div className="fixed inset-0 -z-50">
-        <div className="relative h-64 md:h-[400px] lg:h-[520px]">
-            <Image
-                src="/myhomedox_home3.webp"
-                alt=""
-                fill
-                sizes="100vw"
-                className="object-cover object-center"
-                priority
-            />
-        </div>
-        <div className="absolute inset-0 bg-black/45"/>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.45))]" />
+      <Image
+        src="/myhomedox_home3.webp"
+        alt=""
+        fill
+        sizes="100vw"
+        className="object-cover md:object-[50%_35%] lg:object-[50%_30%]"
+        priority
+      />
+      <div className="absolute inset-0 bg-black/45" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(0,0,0,0.45))]" />
     </div>
   );
 }

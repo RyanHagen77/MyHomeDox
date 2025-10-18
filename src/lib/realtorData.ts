@@ -65,22 +65,52 @@ function addDays(n: number, withTime = false) {
 }
 
 /** Seed once if store empty; returns the (existing or new) dataset */
+/** Seed once if store empty; returns the (existing or new) dataset */
 export async function ensureRealtorData(): Promise<RealtorData> {
   const existing = getRealtorData();
   if (existing) return existing;
 
   const today = isoToday();
+
+  // 1) Addresses to seed
   const seeds = [
     "1842 Maple St, Austin, TX",
     "92 3rd Ave, Nashville, TN",
     "501 Park Ln, Denver, CO",
   ];
-  const sellersSeed: SellerClient[] = [
-    { id: "s1", name: "Nguyen Family", email: "nguyen@example.com", role: "seller", stage: "listed", listingId: "l1", propertyAddress: p1.property.address, note: "Prefers weekend showings" },
-    { id: "s2", name: "Santos Household", phone: "(555) 404-9988", role: "seller", stage: "under_contract", listingId: "l2", propertyAddress: p2.property.address },
-  ];
+
+  // 2) Resolve lookups FIRST
   const [p1, p2, p3] = await Promise.all(seeds.map(lookupByAddress));
 
+  // 3) Defensive fallbacks in case a lookup fails
+  const addr1 = p1?.property?.address ?? seeds[0];
+  const addr2 = p2?.property?.address ?? seeds[1];
+  const addr3 = p3?.property?.address ?? seeds[2];
+
+  // 4) Build sellers now that p1/p2 exist
+  const sellersSeed: SellerClient[] = [
+    {
+      id: "s1",
+      name: "Nguyen Family",
+      email: "nguyen@example.com",
+      role: "seller",
+      stage: "listed",
+      listingId: "l1",
+      propertyAddress: addr1,
+      note: "Prefers weekend showings",
+    },
+    {
+      id: "s2",
+      name: "Santos Household",
+      phone: "(555) 404-9988",
+      role: "seller",
+      stage: "under_contract",
+      listingId: "l2",
+      propertyAddress: addr2,
+    },
+  ];
+
+  // 5) Compose the dataset
   const mock: RealtorData = {
     pro: {
       id: "re-1",
@@ -91,27 +121,68 @@ export async function ensureRealtorData(): Promise<RealtorData> {
       logo: "/logo-placeholder.svg",
     },
     listings: [
-      { id: "l1", address: p1.property.address, mlsId: `MLS# ${p1.property.id.slice(-6)}`, price: p1.property.estValue, status: "active", beds: p1.property.beds, baths: p1.property.baths, sqft: p1.property.sqft, updated: today },
-      { id: "l2", address: p2.property.address, price: p2.property.estValue, status: "pending", beds: p2.property.beds, baths: p2.property.baths, sqft: p2.property.sqft, updated: addDays(-2) },
-      { id: "l3", address: p3.property.address, price: p3.property.estValue, status: "under_contract", beds: p3.property.beds, baths: p3.property.baths, sqft: p3.property.sqft, updated: addDays(-7) },
+      {
+        id: "l1",
+        address: addr1,
+        mlsId: p1?.property?.id ? `MLS# ${p1.property.id.slice(-6)}` : undefined,
+        price: p1?.property?.estValue ?? 0,
+        status: "active",
+        beds: p1?.property?.beds,
+        baths: p1?.property?.baths,
+        sqft: p1?.property?.sqft,
+        updated: today,
+      },
+      {
+        id: "l2",
+        address: addr2,
+        price: p2?.property?.estValue ?? 0,
+        status: "pending",
+        beds: p2?.property?.beds,
+        baths: p2?.property?.baths,
+        sqft: p2?.property?.sqft,
+        updated: addDays(-2),
+      },
+      {
+        id: "l3",
+        address: addr3,
+        price: p3?.property?.estValue ?? 0,
+        status: "under_contract",
+        beds: p3?.property?.beds,
+        baths: p3?.property?.baths,
+        sqft: p3?.property?.sqft,
+        updated: addDays(-7),
+      },
     ],
     requests: [
-      { id: "rq1", address: p1.property.address, owner: "Nguyen", created: addDays(-1, true), status: "requested" },
-      { id: "rq2", address: p2.property.address, owner: "Santos", created: addDays(-5, true), status: "owner_shared", link: `/report?h=${slugify(p2.property.address)}` },
+      {
+        id: "rq1",
+        address: addr1,
+        owner: "Nguyen",
+        created: addDays(-1, true),
+        status: "requested",
+      },
+      {
+        id: "rq2",
+        address: addr2,
+        owner: "Santos",
+        created: addDays(-5, true),
+        status: "owner_shared",
+        link: `/report?h=${slugify(addr2)}`,
+      },
     ],
     buyers: [
-      { id: "b1", name: "Jordan Lee", email: "jordan@example.com", stage: "engaged", interestAddress: p1.property.address },
-      { id: "b2", name: "Sam Patel", phone: "(555) 201-0199", stage: "touring", interestAddress: p3.property.address, note: "Prefers afternoon showings" },
+      { id: "b1", name: "Jordan Lee", email: "jordan@example.com", stage: "engaged", interestAddress: addr1 },
+      { id: "b2", name: "Sam Patel", phone: "(555) 201-0199", stage: "touring", interestAddress: addr3, note: "Prefers afternoon showings" },
     ],
     reviews: [
       { id: "rv1", author: "K. Santos", rating: 5, text: "Streamlined disclosures, confident close.", date: addDays(-14, true) },
       { id: "rv2", author: "D. Patel", rating: 5, text: "Record requests made inspections easy.", date: addDays(-30, true) },
     ],
     calendar: [
-      { id: "c1", title: "Show 1842 Maple St", date: addDays(1), time: "2:00 PM", location: p1.property.address },
-      { id: "c2", title: "Inspection — 92 3rd Ave", date: addDays(2), time: "10:30 AM", location: p2.property.address },
+      { id: "c1", title: "Show 1842 Maple St", date: addDays(1), time: "2:00 PM", location: addr1 },
+      { id: "c2", title: "Inspection — 92 3rd Ave", date: addDays(2), time: "10:30 AM", location: addr2 },
     ],
-     sellers: sellersSeed,
+    sellers: sellersSeed,
   };
 
   setRealtorData(mock);
