@@ -1,18 +1,13 @@
-"use client";
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+// src/app/login/page.tsx
+import { Suspense } from "react";
+import LoginClient from "./LoginClient";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const sp = useSearchParams();
+export const dynamic = "force-dynamic"; // avoids prerender/export issues
 
-  useEffect(() => {
-    const aud = sp.get("audience");
-    const type = sp.get("type") ?? "contractor";
-    if (aud === "pro") {
-      router.replace(`/pro?type=${type}`);
-    }
-  }, [router, sp]);
-
-  return <div>…your login UI…</div>;
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <LoginClient />
+    </Suspense>
+  );
 }

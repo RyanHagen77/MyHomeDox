@@ -91,7 +91,7 @@ export default function JobRecordClient({ id }: { id: string }) {
       <main className="relative min-h-screen text-white">
         <Bg />
         <div className="mx-auto max-w-7xl p-6 space-y-6">
-          <button className={`${ctaGhost} rounded-full`} onClick={() => router.push("/pro")}>← Back to Pro</button>
+          <button className={`${ctaGhost} rounded-full`} onClick={() => router.push("/pro/contractor")}>← Back to Pro</button>
           <section className={glass}>
             <h1 className={`text-xl ${heading}`}>Not found</h1>
             <p className={textMeta}>We couldn't find that job or record in your local data.</p>
@@ -146,7 +146,7 @@ export default function JobRecordClient({ id }: { id: string }) {
       <div className="mx-auto max-w-7xl p-6 space-y-6">
         {/* Header */}
         <header className="flex items-center justify-between">
-          <button className={`${ctaGhost} rounded-full`} onClick={() => router.push("/pro")}>← Back to Pro</button>
+          <button className={`${ctaGhost} rounded-full`} onClick={() => router.push("/pro/contractor")}>← Back to Pro</button>
           <div className="text-right">
             <p className={`text-xs ${textMeta}`}>{db.pro.business}</p>
             <p className={`text-xs ${textMeta}`}>Category • {db.pro.category}</p>
