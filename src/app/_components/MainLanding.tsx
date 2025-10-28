@@ -8,7 +8,11 @@ import type { PropertyPayload } from "@/lib/types";
 
 type Audience = "home" | "pro";
 
-export default function HomeLanding() {
+
+type Props = {
+  initialAudience: Audience;   // <-- tell TS this component takes the prop
+};
+export default function MainLanding() {
   const router = useRouter();
   const search = useSearchParams();
 
@@ -102,43 +106,43 @@ export default function HomeLanding() {
 
           <div className="ml-auto flex items-center gap-2 basis-full sm:basis-auto sm:ml-auto">
             <button
-              onClick={() => router.push("/home")}
+              onClick={() => router.push("/login?role=homeowner")}
               className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 backdrop-blur-sm w-full sm:w-auto"
             >
               Homeowner Login
             </button>
 
-            <div className="relative w-full sm:w-auto">
-              <details className="group">
-                <summary className="list-none cursor-pointer select-none rounded-full bg-white px-3 py-1.5 text-center text-sm text-slate-900 hover:bg-white/90">
-                  Pro Login
-                </summary>
+          <div className="relative w-full sm:w-auto">
+            <details className="group">
+              <summary className="list-none cursor-pointer select-none rounded-full bg-white px-3 py-1.5 text-center text-sm text-slate-900 hover:bg-white/90">
+                Pro Login
+              </summary>
 
-                <div
-                  className="z-50 mt-2 w-full overflow-hidden rounded-xl border border-white/20 bg-white/95 text-slate-900 shadow-lg sm:absolute sm:right-0 sm:w-56"
-                  onClick={(e) => e.stopPropagation()}
+              <div
+                className="z-50 mt-2 w-full overflow-hidden rounded-xl border border-white/20 bg-white/95 text-slate-900 shadow-lg sm:absolute sm:right-0 sm:w-56"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  onClick={() => router.push("/login?role=realtor")}
                 >
-                  <button
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => router.push("/pro/realtor?type=realtor")}
-                  >
-                    Realtor
-                  </button>
-                  <button
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => router.push("/pro?type=inspector")}
-                  >
-                    Inspector
-                  </button>
-                  <button
-                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => router.push("/pro/contractor?type=contractor")}
-                  >
-                    Contractor
-                  </button>
-                </div>
-              </details>
-            </div>
+                  Realtor
+                </button>
+                <button
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  onClick={() => router.push("/login?role=inspector")}
+                >
+                  Inspector
+                </button>
+                <button
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  onClick={() => router.push("/login?role=contractor")}
+                >
+                  Contractor
+                </button>
+              </div>
+            </details>
+          </div>
           </div>
         </div>
       </div>

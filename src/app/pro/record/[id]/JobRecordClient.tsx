@@ -20,7 +20,7 @@ type Job = {
   due: string;
   status: JobStatus;
   estAmount?: number;
-  notes?: string[];
+  note?: string[];
 };
 
 type RecordItem = {
@@ -114,7 +114,7 @@ export default function JobRecordClient({ id }: { id: string }) {
 
   function addNote() {
     if (!job || !note.trim()) return;
-    updateJob({ notes: [...(job.notes ?? []), note.trim()] });
+    updateJob({ note: [...(job.notes ?? []), note.trim()] });
     setNote("");
   }
 

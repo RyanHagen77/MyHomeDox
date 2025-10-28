@@ -1,13 +1,8 @@
-// src/app/login/page.tsx
-import { Suspense } from "react";
 import LoginClient from "./LoginClient";
 
-export const dynamic = "force-dynamic"; // avoids prerender/export issues
+export const dynamic = "force-dynamic"; // or leave off if not needed
+export const revalidate = 0;            // ensure no caching
 
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <LoginClient />
-    </Suspense>
-  );
+  return <LoginClient />;
 }

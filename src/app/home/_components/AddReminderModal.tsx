@@ -9,7 +9,7 @@ import { textMeta, glassTight } from "@/lib/glass";
 export type ReminderInput = {
   title: string;
   due: string;        // YYYY-MM-DD
-  notes?: string;
+  note?: string;
   repeat?: "none" | "monthly" | "quarterly" | "semiannual" | "annual";
 };
 
@@ -30,12 +30,12 @@ const SUGGESTIONS: Array<{title:string; deltaDays:number; repeat:ReminderInput["
 export function AddReminderModal({ open, onClose, onCreate, propertyYearBuilt }: Props) {
   const today = new Date().toISOString().slice(0,10);
   const [form, setForm] = React.useState<ReminderInput>({
-    title: "", due: today, notes: "", repeat: "none"
+    title: "", due: today, note: "", repeat: "none"
   });
 
   React.useEffect(() => {
     if (!open) return;
-    setForm({ title: "", due: today, notes: "", repeat: "none" });
+    setForm({ title: "", due: today, note: "", repeat: "none" });
   }, [open]); // reset on open
 
   function set<K extends keyof ReminderInput>(k: K, v: ReminderInput[K]) {
@@ -54,7 +54,7 @@ export function AddReminderModal({ open, onClose, onCreate, propertyYearBuilt }:
     setForm({
       title: s.title,
       due: d.toISOString().slice(0,10),
-      notes: "",
+      note: "",
       repeat: s.repeat
     });
   }

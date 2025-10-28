@@ -1,9 +1,11 @@
+// src/components/TopBar.tsx
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { ctaGhost } from "@/lib/glass";
 
 type Tone = "white" | "sky";
@@ -25,6 +27,7 @@ export function TopBar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: session, status } = useSession();
 
   // close mobile menu on route changes
   useEffect(() => setOpen(false), [pathname]);
@@ -42,7 +45,7 @@ export function TopBar({
 
   return (
     <div className="sticky top-0 z-40">
-      {/* header row (same spacing for all roles) */}
+      {/* header row */}
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:py-5 text-white">
         {/* logo */}
         <Link href="/" className="inline-flex items-center gap-3 shrink-0">
@@ -58,7 +61,7 @@ export function TopBar({
           <span className="sr-only">{srBrand}</span>
         </Link>
 
-        {/* desktop nav */}
+        {/* desktop nav (left) */}
         <nav className="hidden md:flex items-center gap-3">
           {links.map(({ href, label, badge, tone = "white" }) => (
             <Link key={href} href={href} className={linkCn(href)}>
@@ -66,6 +69,58 @@ export function TopBar({
             </Link>
           ))}
         </nav>
+
+        {/* desktop auth (right) */}
+        <div className="hidden md:flex items-center gap-2">
+          {status === "authenticated" ? (
+            <>
+              <span className="text-white/85 text-sm">{session?.user?.email}</span>
+              <button
+                className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login?role=homeowner"
+                className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+              >
+                Homeowner Login
+              </Link>
+
+              <details className="relative group">
+                <summary className="list-none cursor-pointer select-none rounded-full bg-white px-3 py-1.5 text-sm text-slate-900 hover:bg-white/90">
+                  Pro Login
+                </summary>
+                <div
+                  className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-white/20 bg-white/95 text-slate-900 shadow-lg"
+                >
+                  <Link
+                    href="/login?role=realtor"
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    Realtor
+                  </Link>
+                  <Link
+                    href="/login?role=inspector"
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    Inspector
+                  </Link>
+                  <Link
+                    href="/login?role=contractor"
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    Contractor
+                  </Link>
+                </div>
+              </details>
+            </>
+          )}
+        </div>
 
         {/* mobile hamburger */}
         <button
@@ -102,6 +157,48 @@ export function TopBar({
                     {label} {badge && badge > 0 ? <Badge tone={tone}>{badge}</Badge> : null}
                   </Link>
                 ))}
+
+                {/* mobile auth actions */}
+                {status === "authenticated" ? (
+                  <>
+                    <div className="col-span-2 text-center text-white/85 text-sm py-1">
+                      {session?.user?.email}
+                    </div>
+                    <button
+                      className="col-span-2 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                      onClick={() => signOut({ callbackUrl: "/login" })}
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login?role=homeowner"
+                      className="col-span-2 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                    >
+                      Homeowner Login
+                    </Link>
+                    <Link
+                      href="/login?role=realtor"
+                      className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                    >
+                      Realtor
+                    </Link>
+                    <Link
+                      href="/login?role=inspector"
+                      className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                    >
+                      Inspector
+                    </Link>
+                    <Link
+                      href="/login?role=contractor"
+                      className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+                    >
+                      Contractor
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

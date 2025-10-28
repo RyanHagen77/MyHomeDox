@@ -1,0 +1,259 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * =========================
+ * Core enums
+ * =========================
+ */
+enum Role {
+  HOMEOWNER
+  PRO
+  ADMIN
+}
+
+enum ProStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProType {
+  REALTOR
+  INSPECTOR
+  CONTRACTOR
+}
+
+enum AccessLevel {
+  VIEW
+  COMMENT
+  EDIT
+}
+
+/**
+ * =========================
+ * Core models
+ * =========================
+ */
+
+// ----- User -----
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  image         String?
+  emailVerified DateTime?
+
+  role      Role       @default(HOMEOWNER)
+  proStatus ProStatus?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts   Account[]
+  sessions   Session[]
+  homes      Home[]       @relation("HomeOwner")
+  access     HomeAccess[]
+  records    Record[]     @relation("RecordCreator")
+  reminders  Reminder[]   @relation("ReminderCreator")
+  proProfile ProProfile?
+
+  // NEW
+  lastHomeId String?
+  lastHome   Home?   @relation("UserLastHome", fields: [lastHomeId], references: [id])
+
+  @@index([email])
+  @@index([role])
+  @@index([proStatus])
+  @@index([lastHomeId])
+}
+
+// ---------- Existing ----------
+model Home {
+  id      String   @id @default(cuid())
+  address String
+  city    String
+  state   String
+  zip     String
+  photos  String[] @default([])
+  meta    Json?
+
+  ownerId String?
+  owner   User?   @relation("HomeOwner", fields: [ownerId], references: [id])
+
+  // back-relations
+  records    Record[]
+  reminders  Reminder[]
+  warranties Warranty[]
+  access     HomeAccess[]
+
+  // NEW: back relation for lastHome
+  lastForUsers User[] @relation("UserLastHome")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([city, state])
+}
+
+// ---------- Update Record ----------
+model Record {
+  id        String   @id @default(cuid())
+  homeId    String
+  title     String
+  note      String?
+  vendor    String?       // NEW (nullable)
+  cost      Int?          // NEW (store cents to avoid float errors)
+  date      DateTime
+  kind      String?       // e.g. "maintenance" | "repair" | "upgrade"
+  createdBy String?
+
+  // NEW: attachments relation
+  attachments RecordAttachment[]
+
+  home    Home  @relation(fields: [homeId], references: [id])
+  creator User? @relation("RecordCreator", fields: [createdBy], references: [id])
+
+  updatedAt DateTime @updatedAt
+
+  @@index([homeId, date])
+  @@index([createdBy])
+}
+
+// ---------- NEW ----------
+model RecordAttachment {
+  id         String   @id @default(cuid())
+  recordId   String
+  url        String         // absolute or site-relative URL to the file
+  filename   String?
+  mimeType   String?
+  sizeBytes  Int?           // optional (if your uploader can provide)
+  uploadedAt DateTime @default(now())
+
+  record Record @relation(fields: [recordId], references: [id])
+
+  @@index([recordId])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  homeId    String
+  title     String
+  dueAt     DateTime
+  createdBy String?
+
+  home    Home  @relation(fields: [homeId], references: [id])
+  creator User? @relation("ReminderCreator", fields: [createdBy], references: [id])
+
+  @@index([homeId, dueAt])
+  @@index([createdBy])
+}
+
+model Warranty {
+  id        String    @id @default(cuid())
+  homeId    String
+  item      String
+  provider  String?
+  policyNo  String?
+  expiresAt DateTime?
+
+  home Home @relation(fields: [homeId], references: [id])
+
+  @@index([homeId, expiresAt])
+}
+
+/**
+ * =========================
+ * Pro application/profile
+ * =========================
+ */
+
+model ProProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  type      ProType
+  company   String?
+  licenseNo String?
+  website   String?
+  phone     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * =========================
+ * Sharing / access control
+ * =========================
+ */
+
+model HomeAccess {
+  id         String    @id @default(cuid())
+  homeId     String
+  userId     String
+  role       String // "owner" | "viewer" | "contributor"
+  migratedAt DateTime? // marks LS→DB migration completed for this user/home
+
+  home Home @relation(fields: [homeId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  // For requireHomeAccess findUnique({ where: { homeId_userId: ... } })
+  @@unique([homeId, userId], name: "homeId_userId")
+  @@index([homeId])
+  @@index([userId])
+}
+
+/**
+ * =========================
+ * NextAuth models
+ * =========================
+ */
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
