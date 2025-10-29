@@ -42,7 +42,8 @@ enum AccessLevel {
  * =========================
  */
 
-// ----- User -----
+// --- existing enums/datasource/generator here ---
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -51,31 +52,31 @@ model User {
   image         String?
   emailVerified DateTime?
 
-  role      Role       @default(HOMEOWNER)
-  proStatus ProStatus?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role       Role        @default(HOMEOWNER)
+  proStatus  ProStatus?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   accounts   Account[]
   sessions   Session[]
-  homes      Home[]       @relation("HomeOwner")
+  homes      Home[]      @relation("HomeOwner")
   access     HomeAccess[]
-  records    Record[]     @relation("RecordCreator")
-  reminders  Reminder[]   @relation("ReminderCreator")
+  records    Record[]    @relation("RecordCreator")
+  reminders  Reminder[]  @relation("ReminderCreator")
   proProfile ProProfile?
 
-  // NEW
+  // NEW: attachments user uploaded
+  attachmentsUploaded Attachment[] @relation("AttachmentUploader")
+
+  // NEW: last home relation (if you added it)
   lastHomeId String?
-  lastHome   Home?   @relation("UserLastHome", fields: [lastHomeId], references: [id])
+  lastHome   Home?      @relation("UserLastHome", fields: [lastHomeId], references: [id])
 
   @@index([email])
   @@index([role])
   @@index([proStatus])
-  @@index([lastHomeId])
 }
 
-// ---------- Existing ----------
 model Home {
   id      String   @id @default(cuid())
   address String
@@ -86,13 +87,16 @@ model Home {
   meta    Json?
 
   ownerId String?
-  owner   User?   @relation("HomeOwner", fields: [ownerId], references: [id])
+  owner   User?    @relation("HomeOwner", fields: [ownerId], references: [id])
 
   // back-relations
-  records    Record[]
-  reminders  Reminder[]
-  warranties Warranty[]
-  access     HomeAccess[]
+  records     Record[]
+  reminders   Reminder[]
+  warranties  Warranty[]
+  access      HomeAccess[]
+
+  // NEW: files attached at the home level (and via records)
+  attachments Attachment[]
 
   // NEW: back relation for lastHome
   lastForUsers User[] @relation("UserLastHome")
@@ -104,23 +108,24 @@ model Home {
   @@index([city, state])
 }
 
-// ---------- Update Record ----------
 model Record {
   id        String   @id @default(cuid())
   homeId    String
   title     String
   note      String?
-  vendor    String?       // NEW (nullable)
-  cost      Int?          // NEW (store cents to avoid float errors)
   date      DateTime
-  kind      String?       // e.g. "maintenance" | "repair" | "upgrade"
+  kind      String?
   createdBy String?
 
-  // NEW: attachments relation
-  attachments RecordAttachment[]
+  // OPTIONAL vendor/cost fields you said you added:
+  vendor    String?
+  cost      Float?
 
   home    Home  @relation(fields: [homeId], references: [id])
   creator User? @relation("RecordCreator", fields: [createdBy], references: [id])
+
+  // NEW: attachments on this record
+  attachments Attachment[]
 
   updatedAt DateTime @updatedAt
 
@@ -128,19 +133,26 @@ model Record {
   @@index([createdBy])
 }
 
-// ---------- NEW ----------
-model RecordAttachment {
+model Attachment {
   id         String   @id @default(cuid())
-  recordId   String
-  url        String         // absolute or site-relative URL to the file
-  filename   String?
-  mimeType   String?
-  sizeBytes  Int?           // optional (if your uploader can provide)
-  uploadedAt DateTime @default(now())
+  homeId     String
+  recordId   String?
+  key        String   // S3 object key
+  url        String   // pre-signed or public URL (optional to store)
+  filename   String
+  mimeType   String
+  size       Int
+  uploadedBy String
+  createdAt  DateTime @default(now())
 
-  record Record @relation(fields: [recordId], references: [id])
+  // relations
+  home     Home   @relation(fields: [homeId], references: [id])
+  record   Record? @relation(fields: [recordId], references: [id])
+  uploader User   @relation("AttachmentUploader", fields: [uploadedBy], references: [id])
 
+  @@index([homeId])
   @@index([recordId])
+  @@index([uploadedBy])
 }
 
 model Reminder {

@@ -7,11 +7,24 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { glass, glassTight, textMeta, ctaPrimary, ctaGhost, heading } from "@/lib/glass";
-import HomeTopBar from "../_components/HomeTopBar";
-import ClientActions from "../_components/ClientActions";
-import AddRecordButton from "../_components/AddRecordButton";
-import AddReminderButton from "../_components/AddReminderButton";
-import AddWarrantyButton from "../_components/AddWarrantyButton";
+import HomeTopBar from "@/app/home/_components/HomeTopBar";
+import ClientActions from "@/app/home/_components/ClientActions";
+import AddRecordButton from "@/app/home/_components/AddRecordButton";
+import AddReminderButton from "@/app/home/_components/AddReminderButton";
+import AddWarrantyButton from "@/app/home/_components/AddWarrantyButton";
+
+type HomeMeta = {
+  attrs?: {
+    yearBuilt?: number;
+    sqft?: number;
+    beds?: number;
+    baths?: number;
+    estValue?: number;
+    healthScore?: number;
+    lastUpdated?: string;
+  };
+};
+
 
 // ✅ FIXED: params is a normal object, not a Promise
 export default async function HomePage({
@@ -66,15 +79,8 @@ export default async function HomePage({
 
   const addrLine = `${home.address}${home.city ? `, ${home.city}` : ""}${home.state ? `, ${home.state}` : ""}${home.zip ? ` ${home.zip}` : ""}`;
 
-  const attrs = ((home.meta as any)?.attrs ?? {}) as {
-    yearBuilt?: number;
-    sqft?: number;
-    beds?: number;
-    baths?: number;
-    estValue?: number;
-    healthScore?: number;
-    lastUpdated?: string;
-  };
+  const meta = home.meta as HomeMeta | null;
+  const attrs = meta?.attrs ?? {};
 
   const stats = {
     yearBuilt: attrs.yearBuilt ?? undefined,
@@ -191,7 +197,6 @@ export default async function HomePage({
           <div className="space-y-3">
             <Card title="Upcoming Reminders">
             <div className="mb-2 flex justify-end">
-              <AddReminderButton homeId={home.id} />
             </div>
               {home.reminders.length === 0 ? (
                 <Empty message="No upcoming reminders" actionLabel="Add reminder" />

@@ -4,10 +4,17 @@ import { authConfig } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireHomeAccess } from "@/lib/authz";
 
-export async function GET(_req: Request, ctx: { params: { homeId: string } }) {
-  const { homeId } = ctx.params;
+export const runtime = "nodejs";
+
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ homeId: string }> }   // <- Promise
+) {
+  const { homeId } = await ctx.params;            // <- await
   const session = await getServerSession(authConfig);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   await requireHomeAccess(homeId, session.user.id);
 
   const items = await prisma.record.findMany({
@@ -19,17 +26,22 @@ export async function GET(_req: Request, ctx: { params: { homeId: string } }) {
       note: true,
       date: true,
       kind: true,
-      vendor: true,   // <- include
-      cost: true,     // <- include
+      vendor: true,
+      cost: true,
     },
   });
   return NextResponse.json({ items });
 }
 
-export async function POST(req: Request, ctx: { params: { homeId: string } }) {
-  const { homeId } = ctx.params;
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ homeId: string }> }    // <- Promise
+) {
+  const { homeId } = await ctx.params;            // <- await
   const session = await getServerSession(authConfig);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   await requireHomeAccess(homeId, session.user.id);
 
   const body = await req.json();
@@ -40,10 +52,15 @@ export async function POST(req: Request, ctx: { params: { homeId: string } }) {
       title: String(body.title ?? "Untitled"),
       note: body.note ?? null,
       kind: body.kind ?? null,
-      vendor: body.vendor ?? null,                     // <- persist
-      cost: typeof body.cost === "number" ? body.cost : body.cost ? Number(body.cost) : null, // <- persist
+      vendor: body.vendor ?? null,
+      cost:
+        typeof body.cost === "number"
+          ? body.cost
+          : body.cost
+          ? Number(body.cost)
+          : null,
       date: body.date ? new Date(body.date) : new Date(),
-      createdBy: (session.user as any).id,
+      createdBy: session.user.id,
     },
     select: { id: true },
   });

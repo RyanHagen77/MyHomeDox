@@ -12,12 +12,13 @@ import HomeTopBar from "../../_components/HomeTopBar";
 import AddRecordButton from "../../_components/AddRecordButton";
 import { glass, heading, ctaGhost, textMeta } from "@/lib/glass"; // removed glassTight (unused)
 
+
 export default async function RecordsIndex({
   params,
 }: {
-  params: { homeId: string };
+  params: Promise<{ homeId: string }>;
 }) {
-  const { homeId } = params;
+  const { homeId } = await params; // ✅ await it
 
   const session = await getServerSession(authConfig);
   if (!session?.user?.id) notFound();

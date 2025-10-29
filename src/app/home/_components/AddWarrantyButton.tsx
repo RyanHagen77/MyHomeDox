@@ -14,7 +14,14 @@ export default function AddWarrantyButton({ homeId }: Props) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
-  async function onCreate(w: { item: string; provider?: string; policyNo?: string; expiresAt?: string | null }) {
+  type WarrantyCreate = {
+    item: string;
+    provider?: string;
+    policyNo?: string;
+    expiresAt?: string | null;
+  };
+
+  async function onCreate(w: WarrantyCreate) {
     setBusy(true);
     try {
       const res = await fetch(`/api/home/${homeId}/warranties`, {
@@ -22,14 +29,15 @@ export default function AddWarrantyButton({ homeId }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(w),
       });
-      const j = await res.json().catch(() => ({}));
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(j?.error || "Failed to add warranty");
 
       push("Warranty added");
       setOpen(false);
       router.refresh();
-    } catch (e: any) {
-      push(e?.message || "Could not add warranty");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Could not add warranty";
+      push(message);
     } finally {
       setBusy(false);
     }
@@ -40,11 +48,7 @@ export default function AddWarrantyButton({ homeId }: Props) {
       <button className={ctaPrimary} onClick={() => setOpen(true)} disabled={busy}>
         {busy ? "Saving…" : "Add"}
       </button>
-      <AddWarrantyModal
-        open={open}
-        onClose={() => setOpen(false)}
-        onCreate={onCreate}
-      />
+      <AddWarrantyModal open={open} onClose={() => setOpen(false)} onCreate={onCreate} />
     </>
   );
 }

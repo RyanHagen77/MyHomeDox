@@ -1,9 +1,8 @@
-// src/app/home/_components/AddRecordModal.tsx
 "use client";
 
 import * as React from "react";
 import Image from "next/image";
-import { Modal } from "@/components/ui/Modal"; // <- Make sure Modal itself has "use client" and prop `onCloseAction`
+import { Modal } from "@/components/ui/Modal";
 import { Input, Select, Textarea, fieldLabel } from "@/components/ui";
 import { Button, GhostButton } from "@/components/ui/Button";
 import { RecordSchema, type RecordInput } from "@/lib/validators";
@@ -11,21 +10,31 @@ import { uid } from "@/lib/storage";
 import { useToast } from "@/components/ui/Toast";
 import { glassTight, textMeta } from "@/lib/glass";
 
-type Props = {
-  open: boolean;
-  /** renamed from onClose to avoid TS71007 on server/client boundary */
-  close: () => void;
-  onCreate: (record: any) => void; // parent persists to DB
+export type CreateRecordPayload = {
+  id: string;
+  title: string;
+  date: string;
+  category?: string;
+  vendor?: string;
+  cost?: number;
+  verified?: boolean;
+  note: string;
+  kind?: string;
 };
 
-/** Local form type: extend RecordInput with the singular `note` field */
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (args: { payload: CreateRecordPayload; files: File[] }) => void;
+};
+
 type RecordForm = RecordInput & { note: string };
 
-export function AddRecordModal({ open, close, onCreate }: Props) {
+export function AddRecordModal({ open, onClose, onCreate }: Props) {
   const { push } = useToast();
   const [step, setStep] = React.useState(1);
-  const [attachments, setAttachments] = React.useState<string[]>([]);
-
+  const [previews, setPreviews] = React.useState<string[]>([]);
+  const [files, setFiles] = React.useState<File[]>([]);
   const [form, setForm] = React.useState<RecordForm>({
     title: "",
     date: new Date().toISOString().slice(0, 10),
@@ -33,7 +42,7 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
     vendor: "",
     cost: 0,
     verified: false,
-    note: "",                // <- singular local field
+    note: "",
     attachments: [],
   });
 
@@ -41,15 +50,17 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  function onFiles(files: FileList | null) {
-    if (!files) return;
-    const urls = Array.from(files).map((f) => URL.createObjectURL(f));
-    setAttachments((a) => [...a, ...urls]);
+  function onFiles(list: FileList | null) {
+    if (!list) return;
+    const arr = Array.from(list);
+    setFiles((f) => [...f, ...arr]);
+    setPreviews((p) => [...p, ...arr.map((f) => URL.createObjectURL(f))]);
   }
 
   function reset() {
     setStep(1);
-    setAttachments([]);
+    setPreviews([]);
+    setFiles([]);
     setForm({
       title: "",
       date: new Date().toISOString().slice(0, 10),
@@ -62,50 +73,50 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
     });
   }
 
-  function next() { setStep((s) => Math.min(3, s + 1)); }
-  function back() { setStep((s) => Math.max(1, s - 1)); }
+  const next = () => setStep((s) => Math.min(3, s + 1));
+  const back = () => setStep((s) => Math.max(1, s - 1));
 
   function submit() {
-    // Validate only what the Zod schema knows about, then reattach `note`
-    const candidateForValidation = {
+    const candidate = {
       title: form.title,
       date: form.date,
       category: form.category,
       vendor: form.vendor,
       cost: form.cost,
       verified: form.verified,
-      attachments,
+      attachments: [],
     };
-
-    const parsed = RecordSchema.safeParse(candidateForValidation);
+    const parsed = RecordSchema.safeParse(candidate);
     if (!parsed.success) {
       push("Please complete required fields");
       return;
     }
 
-    // Re-attach fields that may not exist in the schema (e.g., singular `note`)
-    onCreate({
+    const payload: CreateRecordPayload = {
       id: uid(),
-      ...parsed.data,
+      title: parsed.data.title,
+      date: parsed.data.date,
+      category: parsed.data.category,
+      vendor: parsed.data.vendor,
+      cost: parsed.data.cost,
+      verified: parsed.data.verified,
       note: form.note ?? "",
-      // if your API expects `kind`, derive it from category
-      kind:
-        (parsed.data as any).kind ??
-        (parsed.data.category ? String(parsed.data.category).toLowerCase() : undefined),
-    });
+      kind: parsed.data.category ? String(parsed.data.category).toLowerCase() : undefined,
+    };
 
-    push("Record added");
+    onCreate({ payload, files });
     reset();
-    close();
+    onClose();
+    push("Record added");
   }
 
   return (
     <Modal
       open={open}
       title="Add Record"
-      onCloseAction={() => {
+      onClose={() => {
         reset();
-        close();
+        onClose();
       }}
     >
       <div className="mb-3">
@@ -124,9 +135,9 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
             />
           </label>
 
-          {attachments.length > 0 && (
+          {previews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto">
-              {attachments.map((u, i) => (
+              {previews.map((u, i) => (
                 <Image
                   key={i}
                   src={u}
@@ -141,7 +152,9 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
 
           <div className="flex justify-between">
             <span className={`text-sm ${textMeta}`}>Images or PDFs welcome</span>
-            <Button className="px-4" onClick={next}>Next</Button>
+            <Button className="px-4" onClick={next}>
+              Next
+            </Button>
           </div>
         </div>
       )}
@@ -160,18 +173,13 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className={fieldLabel}>Date</span>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => set("date", e.target.value)}
-              />
+              <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
             </label>
-
             <label className="block">
               <span className={fieldLabel}>Category</span>
               <Select
                 value={form.category}
-                onChange={(e) => set("category", e.target.value as any)}
+                onChange={(e) => set("category", e.target.value as RecordForm["category"])}
               >
                 <option>Maintenance</option>
                 <option>Repair</option>
@@ -191,7 +199,6 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
                 placeholder="e.g., ChillRight Heating"
               />
             </label>
-
             <label className="block">
               <span className={fieldLabel}>Cost</span>
               <Input
@@ -241,11 +248,10 @@ export function AddRecordModal({ open, close, onCreate }: Props) {
               Category: {form.category} • Cost: ${form.cost.toLocaleString()}
             </div>
             <div className="text-white/85">
-              {form.verified ? "Verified" : "Unverified"} • {attachments.length} attachment(s)
+              {form.verified ? "Verified" : "Unverified"} • {files.length} attachment(s)
             </div>
             {form.note && <div className="text-white/85">Notes: {form.note}</div>}
           </div>
-
           <div className="flex justify-between">
             <GhostButton onClick={back}>Back</GhostButton>
             <Button onClick={submit}>Save Record</Button>
@@ -265,9 +271,7 @@ function Stepper({ step }: { step: number }) {
           <div
             key={label}
             className={`rounded-full border px-2 py-1 ${
-              active
-                ? "border-white/30 bg-white/20 text-white"
-                : "border-white/20 bg-white/10 text-white/70"
+              active ? "border-white/30 bg-white/20 text-white" : "border-white/20 bg-white/10 text-white/70"
             }`}
           >
             {i + 1}. {label}
