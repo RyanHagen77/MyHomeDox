@@ -40,12 +40,40 @@ export const s3 = new S3Client({
   },
 });
 
-/* --- Build keys for records --- */
+/* --- Build keys for any entity type --- */
+export function buildKey(
+  homeId: string,
+  entityType: "records" | "reminders" | "warranties",
+  entityId: string,
+  filename: string
+) {
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return `homes/${homeId}/${entityType}/${entityId}/${Date.now()}_${safeName}`;
+}
+
+/* --- Build keys for records (backwards compatibility) --- */
 export function buildRecordKey(
   homeId: string,
   recordId: string,
   filename: string
 ) {
-  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `homes/${homeId}/records/${recordId}/${Date.now()}_${safeName}`;
+  return buildKey(homeId, "records", recordId, filename);
+}
+
+/* --- Build keys for reminders --- */
+export function buildReminderKey(
+  homeId: string,
+  reminderId: string,
+  filename: string
+) {
+  return buildKey(homeId, "reminders", reminderId, filename);
+}
+
+/* --- Build keys for warranties --- */
+export function buildWarrantyKey(
+  homeId: string,
+  warrantyId: string,
+  filename: string
+) {
+  return buildKey(homeId, "warranties", warrantyId, filename);
 }

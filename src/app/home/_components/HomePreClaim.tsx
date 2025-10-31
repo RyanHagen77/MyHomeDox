@@ -551,9 +551,9 @@ export default function HomePage() {
         </section>
 
         {/* Modals */}
-        <AddRecordModal open={addOpen} onClose={() => setAddOpen(false)} onCreate={onCreateRecord} />
+        <AddRecordModal open={addOpen} onCloseAction={() => setAddOpen(false)} onCreateAction={onCreateRecord} />
 
-        <ShareAccessModal open={shareOpen} onClose={() => setShareOpen(false)} />
+        <ShareAccessModal open={shareOpen} onCloseAction={() => setShareOpen(false)} />
 
         <SwitchPropertyModal open={switchOpen} onClose={() => setSwitchOpen(false)} currentId={property.id} />
 
@@ -570,8 +570,8 @@ export default function HomePage() {
 
         <AddReminderModal
           open={reminderOpen}
-          onClose={() => setReminderOpen(false)}
-          onCreate={(rem) =>
+          onCloseAction={() => setReminderOpen(false)}
+          onCreateAction={(rem) =>
             setData((d) => (d ? { ...d, reminders: [rem, ...(d.reminders ?? [])] } : d))
           }
           propertyYearBuilt={property.yearBuilt}
@@ -579,15 +579,15 @@ export default function HomePage() {
 
         <AddWarrantyModal
           open={warrantyOpen}
-          onClose={() => setWarrantyOpen(false)}
-          onCreate={(war) =>
+          onCloseAction={() => setWarrantyOpen(false)}
+          onCreateAction={(war) =>
             setData((d) => (d ? { ...d, warranties: [war, ...(d.warranties ?? [])] } : d))
           }
         />
 
         <FindVendorsModal
           open={findVendorsOpen}
-          onClose={() => setFindVendorsOpen(false)}
+          onCloseAction={() => setFindVendorsOpen(false)}
           onAdd={(v: VendorDirectoryItem) => {
             const newVendor: Vendor = {
               id: v.id,

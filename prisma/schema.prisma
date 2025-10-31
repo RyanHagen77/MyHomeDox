@@ -52,25 +52,29 @@ model User {
   image         String?
   emailVerified DateTime?
 
-  role       Role        @default(HOMEOWNER)
-  proStatus  ProStatus?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  role      Role       @default(HOMEOWNER)
+  proStatus ProStatus?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   accounts   Account[]
   sessions   Session[]
-  homes      Home[]      @relation("HomeOwner")
+  homes      Home[]       @relation("HomeOwner")
   access     HomeAccess[]
-  records    Record[]    @relation("RecordCreator")
-  reminders  Reminder[]  @relation("ReminderCreator")
+  records    Record[]     @relation("RecordCreator")
+  reminders  Reminder[]   @relation("ReminderCreator")
   proProfile ProProfile?
 
-  // NEW: attachments user uploaded
+  // Attachments uploaded
   attachmentsUploaded Attachment[] @relation("AttachmentUploader")
 
-  // NEW: last home relation (if you added it)
+  // Last home (if present)
   lastHomeId String?
-  lastHome   Home?      @relation("UserLastHome", fields: [lastHomeId], references: [id])
+  lastHome   Home?   @relation("UserLastHome", fields: [lastHomeId], references: [id])
+
+  // NEW back-relations for Warranty audit
+  warrantiesCreated  Warranty[] @relation("WarrantyCreator")
+  warrantiesVerified Warranty[] @relation("WarrantyVerifier")
 
   @@index([email])
   @@index([role])
@@ -87,13 +91,13 @@ model Home {
   meta    Json?
 
   ownerId String?
-  owner   User?    @relation("HomeOwner", fields: [ownerId], references: [id])
+  owner   User?   @relation("HomeOwner", fields: [ownerId], references: [id])
 
   // back-relations
-  records     Record[]
-  reminders   Reminder[]
-  warranties  Warranty[]
-  access      HomeAccess[]
+  records    Record[]
+  reminders  Reminder[]
+  warranties Warranty[]
+  access     HomeAccess[]
 
   // NEW: files attached at the home level (and via records)
   attachments Attachment[]
@@ -118,8 +122,8 @@ model Record {
   createdBy String?
 
   // OPTIONAL vendor/cost fields you said you added:
-  vendor    String?
-  cost      Float?
+  vendor String?
+  cost   Float?
 
   home    Home  @relation(fields: [homeId], references: [id])
   creator User? @relation("RecordCreator", fields: [createdBy], references: [id])
@@ -133,25 +137,44 @@ model Record {
   @@index([createdBy])
 }
 
+enum AttachmentVisibility {
+  OWNER // owner/admin only
+  HOME // anyone with access to the home
+  PUBLIC // public link (avoid for PII)
+}
+
 model Attachment {
-  id         String   @id @default(cuid())
-  homeId     String
+  id     String @id @default(cuid())
+  homeId String
+
+  // exactly one parent:
   recordId   String?
-  key        String   // S3 object key
-  url        String   // pre-signed or public URL (optional to store)
+  reminderId String?
+  warrantyId String?
+
+  key        String
+  url        String
   filename   String
   mimeType   String
   size       Int
   uploadedBy String
   createdAt  DateTime @default(now())
 
+  // NEW
+  visibility AttachmentVisibility @default(OWNER)
+  notes      String?
+
   // relations
-  home     Home   @relation(fields: [homeId], references: [id])
-  record   Record? @relation(fields: [recordId], references: [id])
-  uploader User   @relation("AttachmentUploader", fields: [uploadedBy], references: [id])
+  home     Home      @relation(fields: [homeId], references: [id])
+  record   Record?   @relation(fields: [recordId], references: [id])
+  reminder Reminder? @relation(fields: [reminderId], references: [id])
+  warranty Warranty? @relation(fields: [warrantyId], references: [id])
+  uploader User      @relation("AttachmentUploader", fields: [uploadedBy], references: [id])
 
   @@index([homeId])
   @@index([recordId])
+  @@index([reminderId])
+  @@index([warrantyId])
   @@index([uploadedBy])
 }
 
@@ -160,10 +183,13 @@ model Reminder {
   homeId    String
   title     String
   dueAt     DateTime
+  note      String? // <- NEW
   createdBy String?
 
   home    Home  @relation(fields: [homeId], references: [id])
   creator User? @relation("ReminderCreator", fields: [createdBy], references: [id])
+
+  attachments Attachment[]
 
   @@index([homeId, dueAt])
   @@index([createdBy])
@@ -176,10 +202,23 @@ model Warranty {
   provider  String?
   policyNo  String?
   expiresAt DateTime?
+  note      String? // <- NEW
 
-  home Home @relation(fields: [homeId], references: [id])
+  // audit
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  verifiedBy String?
+  verifiedAt DateTime?
+
+  home     Home  @relation(fields: [homeId], references: [id])
+  creator  User? @relation("WarrantyCreator", fields: [createdBy], references: [id])
+  verifier User? @relation("WarrantyVerifier", fields: [verifiedBy], references: [id])
+
+  attachments Attachment[]
 
   @@index([homeId, expiresAt])
+  @@index([createdBy])
+  @@index([verifiedBy])
 }
 
 /**

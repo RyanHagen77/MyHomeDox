@@ -1,81 +1,122 @@
-// src/components/AddWarrantyModal.tsx
 "use client";
+
 import * as React from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Input, fieldLabel } from "@/components/ui";
+import { Input, Textarea, fieldLabel } from "@/components/ui";
 import { Button, GhostButton } from "@/components/ui/Button";
-import { uid } from "@/lib/storage";
 
-type WarrantyInput = { item: string; vendor: string; expires: string };
+export type WarrantyModalPayload = {
+  item: string;
+  provider?: string;
+  policyNo?: string;
+  expiresAt?: string | null; // "YYYY-MM-DD" or null
+  note?: string;
+};
 
 type Props = {
   open: boolean;
-  onClose: () => void;
-  onCreate: (w: { id: string } & WarrantyInput) => void;
+  onCloseAction: () => void; // action-suffixed for TS71007
+  onCreateAction: (args: { payload: WarrantyModalPayload; files: File[] }) => void; // action-suffixed
 };
 
-export function AddWarrantyModal({ open, onClose, onCreate }: Props) {
-  const [form, setForm] = React.useState<WarrantyInput>({
+export function AddWarrantyModal({ open, onCloseAction, onCreateAction }: Props) {
+  const today = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [files, setFiles] = React.useState<File[]>([]);
+  const [form, setForm] = React.useState<WarrantyModalPayload>({
     item: "",
-    vendor: "",
-    expires: new Date().toISOString().slice(0, 10),
+    provider: "",
+    policyNo: "",
+    expiresAt: today,
+    note: "",
   });
 
   React.useEffect(() => {
-    if (open) {
-      setForm({
-        item: "",
-        vendor: "",
-        expires: new Date().toISOString().slice(0, 10),
-      });
-    }
-  }, [open]);
+    if (!open) return;
+    setFiles([]);
+    setForm({ item: "", provider: "", policyNo: "", expiresAt: today, note: "" });
+  }, [open, today]);
 
-  function submit() {
-    if (!form.item.trim() || !form.vendor.trim()) return;
-    onCreate({ id: uid(), ...form });
-    onClose();
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.item.trim()) return;
+    onCreateAction({ payload: form, files });
+    onCloseAction();
+  }
+
+  function onFiles(list: FileList | null) {
+    if (!list) return;
+    setFiles(Array.from(list));
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Warranty or Manual">
-      <div className="space-y-3">
+    <Modal open={open} onCloseAction={onCloseAction} title="Add Warranty or Manual">
+      <form className="space-y-3" onSubmit={submit}>
         <label className="block">
           <span className={fieldLabel}>Item</span>
           <Input
             value={form.item}
-            onChange={(e) => setForm({ ...form, item: e.target.value })}
+            onChange={(e) => setForm((f) => ({ ...f, item: e.target.value }))}
             placeholder="e.g., Water Heater"
           />
         </label>
 
-        <label className="block">
-          <span className={fieldLabel}>Vendor / Brand</span>
-          <Input
-            value={form.vendor}
-            onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-            placeholder="e.g., Rheem"
-          />
-        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className={fieldLabel}>Provider / Brand</span>
+            <Input
+              value={form.provider ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value }))}
+              placeholder="e.g., Rheem"
+            />
+          </label>
+          <label className="block">
+            <span className={fieldLabel}>Policy # (optional)</span>
+            <Input
+              value={form.policyNo ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, policyNo: e.target.value }))}
+              placeholder="ABC-1234"
+            />
+          </label>
+        </div>
 
         <label className="block">
           <span className={fieldLabel}>Expires</span>
           <Input
             type="date"
-            value={form.expires}
-            onChange={(e) => setForm({ ...form, expires: e.target.value })}
+            value={form.expiresAt ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value || null }))}
+          />
+        </label>
+
+        <label className="block">
+          <span className={fieldLabel}>Notes (optional)</span>
+          <Textarea
+            rows={3}
+            value={form.note ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            placeholder="Add any notes or coverage details…"
+          />
+        </label>
+
+        <label className="block">
+          <span className={fieldLabel}>Attachments (optional)</span>
+          <input
+            type="file"
+            multiple
+            onChange={(e) => onFiles(e.target.files)}
+            className="mt-1 block w-full text-white/85 file:mr-3 file:rounded-md file:border file:border-white/30 file:bg-white/10 file:px-3 file:py-1.5 file:text-white hover:file:bg-white/15"
           />
         </label>
 
         <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
-          <GhostButton className="w-full sm:w-auto" onClick={onClose}>
+          <GhostButton type="button" className="w-full sm:w-auto" onClick={onCloseAction}>
             Cancel
           </GhostButton>
-          <Button className="w-full sm:w-auto" onClick={submit}>
+          <Button className="w-full sm:w-auto" type="submit">
             Add
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }

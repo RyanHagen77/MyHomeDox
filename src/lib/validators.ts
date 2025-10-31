@@ -18,3 +18,36 @@ export const InviteSchema = z.object({
   role: z.enum(["Viewer","Contributor"]),
 });
 export type InviteInput = z.infer<typeof InviteSchema>;
+
+export const ReminderSchema = z.object({
+  title: z.string().min(1),
+  dueAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
+  note: z.string().optional(),                    // <- NEW
+  repeat: z.enum(["none","monthly","quarterly","semiannual","annual"]).optional(),
+});
+
+export type ReminderInput = z.infer<typeof ReminderSchema>;
+
+export const WarrantySchema = z.object({
+  item: z.string().min(1),
+  provider: z.string().optional().nullable(),
+  policyNo: z.string().optional().nullable(),
+  expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  note: z.string().optional(), // <- NEW
+});
+
+export type WarrantyInput = z.infer<typeof WarrantySchema>;
+
+export const AttachmentPersistItemSchema = z.object({
+  filename: z.string().min(1),
+  size: z.number().int().nonnegative(),
+  contentType: z.string().min(1),
+  storageKey: z.string().min(1),
+  url: z.string().nullable().optional(),
+
+  // NEW:
+  visibility: z.enum(["OWNER", "HOME", "PUBLIC"]).default("OWNER"),
+  notes: z.string().optional(),
+});
+
+export type AttachmentPersistItem = z.infer<typeof AttachmentPersistItemSchema>

@@ -19,11 +19,11 @@ type Invite = {
 
 export function ShareAccessModal({
   open,
-  onClose,
+  onCloseAction,
   homeId, // ← optional
 }: {
   open: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
   homeId?: string;
 }) {
   const { push } = useToast();
@@ -68,7 +68,7 @@ export function ShareAccessModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Share Access">
+    <Modal open={open} onCloseAction={onCloseAction} title="Share Access">
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Input

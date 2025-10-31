@@ -7,11 +7,17 @@ import { ctaPrimary, ctaGhost } from "@/lib/glass";
 /** Client modals */
 import { AddRecordModal, type CreateRecordPayload } from "@/app/home/_components/AddRecordModal";
 import { ShareAccessModal } from "@/app/home/_components/ShareAccessModal";
-import { AddReminderModal } from "@/app/home/_components/AddReminderModal";
+import {
+  AddReminderModal,
+  type ReminderModalPayload,
+} from "@/app/home/_components/AddReminderModal";
+import {
+  AddWarrantyModal,
+  type WarrantyModalPayload,
+} from "@/app/home/_components/AddWarrantyModal";
 import { FindVendorsModal, type VendorDirectoryItem } from "@/app/home/_components/FindVendorModal";
-import { AddWarrantyModal } from "@/app/home/_components/AddWarrantyModal";
 
-/* ---------- Types for API helpers ---------- */
+/* ---------- Types ---------- */
 type PresignResponse = { key: string; url: string; publicUrl: string | null };
 type PersistAttachment = {
   filename: string;
@@ -20,25 +26,18 @@ type PersistAttachment = {
   storageKey: string;
   url: string | null;
 };
-type ReminderFromModal = { title: string; dueAt?: string; due?: string };
-type WarrantyFromModal = {
-  item: string;
-  vendor?: string;
-  policyNo?: string;
-  expiresAt?: string | null;
-};
 
+/* ---------- Component ---------- */
 export default function ClientActions({ homeId }: { homeId: string }) {
   const router = useRouter();
 
-  // modal state
   const [addOpen, setAddOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [findVendorsOpen, setFindVendorsOpen] = useState(false);
   const [warrantyOpen, setWarrantyOpen] = useState(false);
 
-  /* ---------- API helpers ---------- */
+  /* ---------- API Helpers ---------- */
   async function createRecord(payload: {
     title: string;
     note?: string | null;
@@ -53,81 +52,95 @@ export default function ClientActions({ homeId }: { homeId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const json = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+    const json = await res.json().catch(() => ({}));
     if (!res.ok || !json?.id) throw new Error(json?.error || "Failed to create record");
     return { id: json.id };
   }
 
-  async function createReminder(payload: { title: string; dueAt: string }) {
+  async function createReminder(payload: {
+    title: string;
+    dueAt: string;
+    note?: string | null;
+    repeat?: ReminderModalPayload["repeat"];
+  }): Promise<{ id: string }> {
     const res = await fetch(`/api/home/${homeId}/reminders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to create reminder");
-    router.refresh();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.id) throw new Error(json?.error || "Failed to create reminder");
+    return { id: json.id };
   }
 
   async function createWarranty(payload: {
     item: string;
-    provider?: string;
-    policyNo?: string;
+    provider?: string | null;
+    policyNo?: string | null;
     expiresAt?: string | null;
-  }) {
+    note?: string | null;
+  }): Promise<{ id: string }> {
     const res = await fetch(`/api/home/${homeId}/warranties`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to create warranty");
-    router.refresh();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json?.id) throw new Error(json?.error || "Failed to create warranty");
+    return { id: json.id };
   }
 
-  /* ---------- Record create → presign → PUT → persist ---------- */
-  async function onCreateRecord(args: { payload: CreateRecordPayload; files: File[] }): Promise<void> {
-    const { payload, files } = args;
+  /* ---------- Shared uploader helper ---------- */
+  async function uploadAndPersistAttachments({
+    homeId,
+    recordId,
+    warrantyId,
+    reminderId,
+    files,
+  }: {
+    homeId: string;
+    recordId?: string;
+    warrantyId?: string;
+    reminderId?: string;
+    files: File[];
+  }) {
+    if (!files.length) return;
 
-    // 1) Create record (presign requires recordId)
-    const record = await createRecord({
-      title: payload.title,
-      note: payload.note ?? null,
-      date: payload.date,
-      kind: payload.kind ?? (payload.category ? payload.category.toLowerCase() : null),
-      vendor: payload.vendor ?? null,
-      cost:
-        typeof payload.cost === "number"
-          ? payload.cost
-          : payload.cost
-          ? Number(payload.cost)
-          : null,
-      verified: payload.verified ?? null,
-    });
-    const recordId = record.id;
-
-    // 2) Presign → PUT for each file
     const uploaded: PersistAttachment[] = [];
     for (const f of files) {
-      const preRes = await fetch(`/api/uploads/presign`, {
+      // Build presign payload - only include the ID that's actually present
+      const presignPayload: any = {
+        homeId,
+        filename: f.name,
+        contentType: f.type || "application/octet-stream",
+        size: f.size,
+      };
+
+      // Add whichever ID is present
+      if (recordId) presignPayload.recordId = recordId;
+      if (warrantyId) presignPayload.warrantyId = warrantyId;
+      if (reminderId) presignPayload.reminderId = reminderId;
+
+      const pre = await fetch(`/api/uploads/presign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          homeId,
-          recordId,
-          filename: f.name,
-          mimeType: f.type || "application/octet-stream",
-          size: f.size,
-        }),
+        body: JSON.stringify(presignPayload),
       });
-      if (!preRes.ok) throw new Error(`Presign failed: ${await preRes.text()}`);
-      const { key, url, publicUrl } = (await preRes.json()) as PresignResponse;
+
+      if (!pre.ok) {
+        const errorText = await pre.text();
+        throw new Error(`Presign failed: ${errorText}`);
+      }
+
+      const { key, url, publicUrl } = (await pre.json()) as PresignResponse;
       if (!key || !url) throw new Error("Presign missing key/url");
 
-      const putRes = await fetch(url, {
+      const put = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": f.type || "application/octet-stream" },
         body: f,
       });
-      if (!putRes.ok) throw new Error(`S3 PUT failed: ${await putRes.text().catch(() => "")}`);
+      if (!put.ok) throw new Error(`S3 PUT failed: ${await put.text().catch(() => "")}`);
 
       uploaded.push({
         filename: f.name,
@@ -138,23 +151,91 @@ export default function ClientActions({ homeId }: { homeId: string }) {
       });
     }
 
-    // 3) Persist attachment rows
-    if (uploaded.length) {
-      const persistRes = await fetch(`/api/home/${homeId}/records/${recordId}/attachments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(uploaded),
-      });
-      if (!persistRes.ok) throw new Error(`Persist attachments failed: ${await persistRes.text()}`);
-    }
+    // Pick correct endpoint
+    let endpoint = "";
+    if (recordId) endpoint = `/api/home/${homeId}/records/${recordId}/attachments`;
+    else if (warrantyId) endpoint = `/api/home/${homeId}/warranties/${warrantyId}/attachments`;
+    else if (reminderId) endpoint = `/api/home/${homeId}/reminders/${reminderId}/attachments`;
+    if (!endpoint) return;
 
+    const persist = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(uploaded),
+    });
+    if (!persist.ok) throw new Error(`Persist attachments failed: ${await persist.text()}`);
+  }
+
+  /* ---------- Record: create → presign → PUT → persist ---------- */
+  async function onCreateRecord({
+    payload,
+    files,
+  }: {
+    payload: CreateRecordPayload;
+    files: File[];
+  }) {
+    const record = await createRecord({
+      title: payload.title,
+      note: payload.note ?? null,
+      date: payload.date,
+      kind: payload.kind ?? (payload.category ? payload.category.toLowerCase() : null),
+      vendor: payload.vendor ?? null,
+      cost: typeof payload.cost === "number" ? payload.cost : Number(payload.cost) || null,
+      verified: payload.verified ?? null,
+    });
+
+    const recordId = record.id;
+    await uploadAndPersistAttachments({ homeId, recordId, files });
     setAddOpen(false);
     router.refresh();
   }
 
+  /* ---------- Reminder: create → presign → PUT → persist ---------- */
+  async function onCreateReminder({
+    payload,
+    files,
+  }: {
+    payload: ReminderModalPayload;
+    files: File[];
+  }) {
+    const created = await createReminder({
+      title: payload.title,
+      dueAt: payload.dueAt,
+      note: payload.note ?? null,
+      repeat: payload.repeat ?? "none",
+    });
+    const reminderId = created.id;
+
+    await uploadAndPersistAttachments({ homeId, reminderId, files });
+    setReminderOpen(false);
+    router.refresh();
+  }
+
+  /* ---------- Warranty: create → presign → PUT → persist ---------- */
+  async function onCreateWarranty({
+    payload,
+    files,
+  }: {
+    payload: WarrantyModalPayload;
+    files: File[];
+  }) {
+    const warranty = await createWarranty({
+      item: payload.item,
+      provider: payload.provider ?? null,
+      policyNo: payload.policyNo ?? null,
+      expiresAt: payload.expiresAt ?? null,
+      note: payload.note ?? null,
+    });
+
+    const warrantyId = warranty.id;
+    await uploadAndPersistAttachments({ homeId, warrantyId, files });
+    setWarrantyOpen(false);
+    router.refresh();
+  }
+
+  /* ---------- UI ---------- */
   return (
     <>
-      {/* Buttons row */}
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setAddOpen(true)} className={ctaPrimary}>
           Add Record
@@ -173,51 +254,37 @@ export default function ClientActions({ homeId }: { homeId: string }) {
         </a>
       </div>
 
-      {/* Record modal — consistent prop names */}
+      {/* Record Modal */}
       <AddRecordModal
         open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onCreate={onCreateRecord}
+        onCloseAction={() => setAddOpen(false)}
+        onCreateAction={onCreateRecord}
       />
 
-      {/* Reminder modal */}
+      {/* Reminder Modal */}
       <AddReminderModal
         open={reminderOpen}
-        onClose={() => setReminderOpen(false)}
-        onCreate={async (rem: ReminderFromModal) => {
-          await createReminder({
-            title: rem.title,
-            dueAt: rem.dueAt ?? rem.due ?? "", // normalize
-          });
-          setReminderOpen(false);
-        }}
+        onCloseAction={() => setReminderOpen(false)}
+        onCreateAction={onCreateReminder}
       />
 
-      {/* Warranty modal */}
+      {/* Warranty Modal */}
       <AddWarrantyModal
         open={warrantyOpen}
-        onClose={() => setWarrantyOpen(false)}
-        onCreate={async (w: WarrantyFromModal) => {
-          await createWarranty({
-            item: w.item,
-            provider: w.vendor,        // map vendor -> provider
-            policyNo: w.policyNo,
-            expiresAt: w.expiresAt ?? null,
-          });
-          setWarrantyOpen(false);
-        }}
+        onCloseAction={() => setWarrantyOpen(false)}
+        onCreateAction={onCreateWarranty}
       />
 
-      {/* Share access modal */}
-      <ShareAccessModal open={shareOpen} onClose={() => setShareOpen(false)} homeId={homeId} />
+      {/* Share Access */}
+      <ShareAccessModal open={shareOpen} onCloseAction={() => setShareOpen(false)} homeId={homeId} />
 
-      {/* (Optional) Find vendor modal */}
+      {/* Find Vendors */}
       <FindVendorsModal
         open={findVendorsOpen}
-        onClose={() => setFindVendorsOpen(false)}
-        onAdd={function (_v: VendorDirectoryItem): void {
-          // implement when ready
-          throw new Error("Function not implemented.");
+        onCloseAction={() => setFindVendorsOpen(false)}
+        onAdd={(v: VendorDirectoryItem) => {
+          // hook up when ready
+          console.log("picked vendor", v.id);
         }}
       />
     </>

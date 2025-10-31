@@ -1,4 +1,4 @@
-// src/app/api/home/[homeId]/records/[recordId]/attachments/route.ts
+// src/app/api/home/[homeId]/reminders/[reminderId]/attachments/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
@@ -6,11 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { requireHomeAccess } from "@/lib/authz";
 import { AttachmentPersistItemSchema } from "@/lib/validators";
 
-type Params = { homeId: string; recordId: string };
+type Params = { homeId: string; reminderId: string };
 export const runtime = "nodejs";
 
 export async function POST(req: Request, ctx: { params: Promise<Params> }) {
-  const { homeId, recordId } = await ctx.params;
+  const { homeId, reminderId } = await ctx.params;
   const session = await getServerSession(authConfig);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: { params: Promise<Params> }) {
   await prisma.attachment.createMany({
     data: items.map((i) => ({
       homeId,
-      recordId,
+      reminderId,
 
       key: i.storageKey,
       url: i.url ?? "",
@@ -37,7 +37,7 @@ export async function POST(req: Request, ctx: { params: Promise<Params> }) {
       uploadedBy: session.user.id,
 
       // other parents explicitly null to keep guardrail invariant
-      reminderId: null,
+      recordId: null,
       warrantyId: null,
 
       // NEW

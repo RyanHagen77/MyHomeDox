@@ -17,7 +17,7 @@ export type VendorDirectoryItem = {
 
 type Props = {
   open: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
   onAdd: (v: VendorDirectoryItem) => void; // parent will convert to Vendor type
 };
 
@@ -29,7 +29,7 @@ const DIRECTORY: VendorDirectoryItem[] = [
   { id: "v4", name: "Spark Electric", type: "Electrician", rating: 4.6, verified: true, phone: "(555) 333-4411", website: "#" },
 ];
 
-export function FindVendorsModal({ open, onClose, onAdd }: Props) {
+export function FindVendorsModal({ open, onCloseAction, onAdd }: Props) {
   const [q, setQ] = React.useState("");
   const results = React.useMemo(() => {
     const term = q.toLowerCase().trim();
@@ -40,7 +40,7 @@ export function FindVendorsModal({ open, onClose, onAdd }: Props) {
   }, [q]);
 
   return (
-    <Modal open={open} onClose={onClose} title="Find Vendors">
+    <Modal open={open} onCloseAction={onCloseAction} title="Find Vendors">
       <div className="space-y-3">
         <label className="block">
           <span className={fieldLabel}>Search</span>
@@ -76,7 +76,7 @@ export function FindVendorsModal({ open, onClose, onAdd }: Props) {
         </ul>
 
         <div className="flex justify-end">
-          <Button onClick={onClose}>Done</Button>
+          <Button onClick={onCloseAction}>Done</Button>
         </div>
       </div>
     </Modal>
